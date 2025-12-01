@@ -1,0 +1,12 @@
+<library path="src">
+  <class name="recorder_plugin.MyPlugin" type="recorder_plugin.main.MyPlugin" base_class_type="rqt_gui_py::Plugin">
+    <qtgui>
+      <label>RecorderPlugin</label>
+      <icon type="theme">applications-other</icon>
+    </qtgui>
+    <description>
+      recording and play back
+    </description>
+  </class>
+</library>
+

@@ -1,0 +1,31 @@
+<package format="2">
+  <name>recorder_plugin</name>
+  <version>0.0.0</version>
+  <description>The recorder_plugin package</description>
+
+  <maintainer email="your_email@example.com">Your Name</maintainer>
+  <license>MIT</license>
+
+  <!-- Build dependencies -->
+  <buildtool_depend>catkin</buildtool_depend>
+  <build_depend>rospy</build_depend>
+  <build_depend>rqt_gui</build_depend>
+  <build_depend>rqt_gui_py</build_depend>
+  <build_depend>std_msgs</build_depend>
+  <build_depend>rospkg</build_depend>
+  <build_depend>python_qt_binding</build_depend>
+
+  <!-- Run dependencies -->
+  <exec_depend>rospy</exec_depend>
+  <exec_depend>rqt_gui</exec_depend>
+  <exec_depend>rqt_gui_py</exec_depend>
+  <exec_depend>std_msgs</exec_depend>
+  <exec_depend>rospkg</exec_depend>
+  <exec_depend>python_qt_binding</exec_depend>
+
+  <!-- Export -->
+  <export>
+    <rqt_gui plugin="${prefix}/plugin.xml"/>
+  </export>
+</package>
+
