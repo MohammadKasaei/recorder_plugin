@@ -1,7 +1,7 @@
 
-# 🧩 Bronchoscopy Recorder Plugin
+# 🧩 Recorder Plugin (`recorder_plugin`) — v0.0.0
 
-The `MyPlugin` module is a custom RQT plugin designed for real-time video recording and playback in a ROS-based surgical robotics context. It allows users to capture endoscopic video frames, annotate them with control signals (e.g., cable positions, Z-translation), and replay recorded data for debugging, training, or analysis.
+The `RecorderPlugin` (`recorder_plugin`) is an RQt plugin for real-time video recording and playback in a ROS-based context. It captures image frames, logs control signals (e.g., cable positions, Z-translation), and replays recorded data for debugging, training, or analysis.
 
 ---
 
@@ -15,6 +15,13 @@ The `MyPlugin` module is a custom RQT plugin designed for real-time video record
 | **Frame Grabber** | Allows live image acquisition from `/dev/video*` devices with optional trimming of dark borders. |
 | **Config Persistence** | Saves and loads frame grabber settings (crop, rotation, FPS, etc.) between sessions. |
 | **UI Integration** | Complete RQT GUI using `recorder.ui` with PyQt5 controls. |
+
+
+# Install QT5
+Use the following command to install QT5 and related tools:
+<!-- bash command -->
+
+sudo apt install python3-pyqt5 qttools5-dev-tools qtcreator pyqt5-dev-tools
 
 ---
 
@@ -59,9 +66,9 @@ Clone this repository into your ROS workspace's `src/` directory:
 
 ```bash
 cd ~/catkin_ws/src
-git clone https://github.com/your-username/ros_recorder_plugin.git
+git clone https://github.com/MohammadKasaei/recorder_plugin.git
 ```
-
+  
 Install dependencies:
 
 ```bash
