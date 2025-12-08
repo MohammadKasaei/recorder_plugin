@@ -27,7 +27,6 @@ from python_qt_binding.QtCore import Qt, QTimer, Signal, Slot
 from rqt_gui_py.plugin import Plugin
 from python_qt_binding.QtWidgets import QGraphicsPixmapItem
 
-from .SimilarityChecker import SimilarityChecker
 import torch
 from pathlib import Path
         
@@ -553,9 +552,17 @@ class MyPlugin(Plugin):
             if self._pause:
                 return
             
+            if self._widget.chk_publish_joints.isChecked():
+                # publish dummy cables and tool states
+                cables_msg = Float64MultiArray()
+                tool_msg = Float64MultiArray()
+
+
+
             image_path = os.path.join(self._replay_folder_path, f"image_{self._replay_frame_count:04d}.jpg")
             img = PILImage.open(image_path)
             cv_image = np.array(img)
+            
             # check the shape first and if needed resize to 600 x 600 in case the image is not
             if self._widget.chk_random_mask.isChecked():
                 # add random black mask to the image
@@ -737,7 +744,14 @@ class MyPlugin(Plugin):
                 self._widget.tbr_replay_progress.setMaximum(len(files))
                 self._widget.tbr_replay_progress.setValue(0)
                 self._replay_frame_count = 0
-                    
+
+                if self._widget.chk_publish_joints.isChecked():
+                    self.cables_pos_pub = rospy.Publisher("/cables_pos", Float64MultiArray, queue_size=10)
+                    self.tool_translation_pub = rospy.Publisher("/tool_translation", Float64MultiArray, queue_size=10)
+                    cables_data = np.loadtxt(os.path.join(self._replay_folder_path, "cables_pos.txt"), delimiter=',')
+                    tool_translation_data = np.loadtxt(os.path.join(self._replay_folder_path, "tool_translation.txt"),  delimiter=',')
+                    print (f"cables_data shape: {cables_data.shape}")
+                    print (f"tool_translation_data shape: {tool_translation_data.shape}")
                 # Start the timer
                 self.replay_timer.start()
                 self._widget.lbl_replay.setText("Replaying")

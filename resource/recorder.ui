@@ -57,8 +57,8 @@
    <widget class="QPushButton" name="btn_replay">
     <property name="geometry">
      <rect>
-      <x>10</x>
-      <y>172</y>
+      <x>4</x>
+      <y>190</y>
       <width>111</width>
       <height>31</height>
      </rect>
@@ -182,8 +182,8 @@
     </property>
     <property name="geometry">
      <rect>
-      <x>126</x>
-      <y>172</y>
+      <x>120</x>
+      <y>190</y>
       <width>111</width>
       <height>31</height>
      </rect>
@@ -206,8 +206,8 @@
     </property>
     <property name="geometry">
      <rect>
-      <x>246</x>
-      <y>172</y>
+      <x>240</x>
+      <y>190</y>
       <width>131</width>
       <height>31</height>
      </rect>
@@ -252,7 +252,7 @@
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>210</y>
+      <y>230</y>
       <width>151</width>
       <height>23</height>
      </rect>
@@ -271,7 +271,7 @@
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>240</y>
+      <y>260</y>
       <width>151</width>
       <height>23</height>
      </rect>
@@ -290,7 +290,7 @@
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>270</y>
+      <y>290</y>
       <width>151</width>
       <height>23</height>
      </rect>
@@ -309,7 +309,7 @@
     <property name="geometry">
      <rect>
       <x>210</x>
-      <y>210</y>
+      <y>230</y>
       <width>151</width>
       <height>23</height>
      </rect>
@@ -328,7 +328,7 @@
     <property name="geometry">
      <rect>
       <x>210</x>
-      <y>240</y>
+      <y>260</y>
       <width>151</width>
       <height>23</height>
      </rect>
@@ -347,13 +347,32 @@
     <property name="geometry">
      <rect>
       <x>210</x>
-      <y>270</y>
+      <y>290</y>
       <width>151</width>
       <height>23</height>
      </rect>
     </property>
     <property name="text">
      <string>Random Blur</string>
+    </property>
+    <property name="checked">
+     <bool>false</bool>
+    </property>
+   </widget>
+   <widget class="QCheckBox" name="chk_random_mask_2">
+    <property name="enabled">
+     <bool>true</bool>
+    </property>
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>160</y>
+      <width>241</width>
+      <height>23</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Publish Insertion/ cabels data</string>
     </property>
     <property name="checked">
      <bool>false</bool>
