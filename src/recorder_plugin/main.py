@@ -59,6 +59,8 @@ class MyPlugin(Plugin):
         self._thr_ratio = 30
         self.data_str = ""
         self._tool_trans_data_str = ""
+        self._internal_cnt = 0
+        self._replay_repeat_count = 1
 
         # Create QWidget
         self._widget = QWidget()
@@ -96,6 +98,7 @@ class MyPlugin(Plugin):
         
         
         self._widget.tbr_replay_spd.valueChanged.connect(self.on_tbr_replay_spd_changed)   
+        self._widget.tbr_replay_repeat.valueChanged.connect(self.on_tbr_replay_repeat_changed)
         self._widget.tbr_replay_progress.valueChanged.connect(self.on_tbr_replay_progress_changed)
         self._widget.tbr_rec_spd.valueChanged.connect(self.on_tbr_rec_spd_changed)   
         self._widget.tbr_frm_grab_spd.valueChanged.connect(self.on_tbr_frm_grab_spd_changed)
@@ -553,11 +556,19 @@ class MyPlugin(Plugin):
                 return
             
             if self._widget.chk_publish_joints.isChecked():
-                # publish dummy cables and tool states
+                # publish cables and tool states
                 cables_msg = Float64MultiArray()
                 tool_msg = Float64MultiArray()
-
-
+                if not hasattr(self, '_cables_data') or not hasattr(self, '_tool_translation_data'):
+                    rospy.logerr(f"Joints data not loaded.")
+                else:
+                    if self._replay_frame_count >= self._cables_data.shape[0]:
+                        rospy.loginfo(f"end of tool data.")
+                    else:
+                        cables_msg.data = self._cables_data[self._replay_frame_count][1:].tolist()
+                        tool_msg.data = self._tool_translation_data[self._replay_frame_count][1:].tolist()
+                        self.cables_pos_pub.publish(cables_msg)
+                        self.tool_translation_pub.publish(tool_msg)
 
             image_path = os.path.join(self._replay_folder_path, f"image_{self._replay_frame_count:04d}.jpg")
             img = PILImage.open(image_path)
@@ -652,7 +663,12 @@ class MyPlugin(Plugin):
             
             image_msg = self.bridge.cv2_to_imgmsg(cv_image, encoding="bgr8")
             self.replay_image_pub.publish(image_msg)
-            self._replay_frame_count += 1
+            
+            if self._internal_cnt % self._replay_repeat_count == 0:
+                self._replay_frame_count += 1
+                
+            self._internal_cnt += 1
+            
             self._widget.tbr_replay_progress.setValue(self._replay_frame_count)
             
             
@@ -675,6 +691,18 @@ class MyPlugin(Plugin):
         self._widget.lbl_thr_ratio.setText(f"Ratio:\t{value}")
         self._thr_ratio = value
         
+    def on_tbr_replay_repeat_changed(self, value):
+        """
+        Handle the slider value change event.
+        """
+        
+        if value>1:
+            self._widget.lbl_replay_repeat.setText(f"Repeat:\t{value} times")
+        else:
+            self._widget.lbl_replay_repeat.setText(f"Repeat:\t{value} time")
+        
+        self._replay_repeat_count = value
+
     def on_tbr_replay_spd_changed(self, value):
         """
         Handle the slider value change event.
@@ -748,10 +776,11 @@ class MyPlugin(Plugin):
                 if self._widget.chk_publish_joints.isChecked():
                     self.cables_pos_pub = rospy.Publisher("/cables_pos", Float64MultiArray, queue_size=10)
                     self.tool_translation_pub = rospy.Publisher("/tool_translation", Float64MultiArray, queue_size=10)
-                    cables_data = np.loadtxt(os.path.join(self._replay_folder_path, "cables_pos.txt"), delimiter=',')
-                    tool_translation_data = np.loadtxt(os.path.join(self._replay_folder_path, "tool_translation.txt"),  delimiter=',')
-                    print (f"cables_data shape: {cables_data.shape}")
-                    print (f"tool_translation_data shape: {tool_translation_data.shape}")
+                    self._cables_data = np.loadtxt(os.path.join(self._replay_folder_path, "cables_pos.txt"), delimiter=',')
+                    self._tool_translation_data = np.loadtxt(os.path.join(self._replay_folder_path, "tool_translation.txt"),  delimiter=',')
+                    print (f"cables_data shape: {self._cables_data.shape}")
+                    print (f"tool_translation_data shape: {self._tool_translation_data.shape}")
+
                 # Start the timer
                 self.replay_timer.start()
                 self._widget.lbl_replay.setText("Replaying")

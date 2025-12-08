@@ -19,7 +19,7 @@
      <x>10</x>
      <y>10</y>
      <width>391</width>
-     <height>321</height>
+     <height>341</height>
     </rect>
    </property>
    <property name="frameShape">
@@ -58,7 +58,7 @@
     <property name="geometry">
      <rect>
       <x>4</x>
-      <y>190</y>
+      <y>210</y>
       <width>111</width>
       <height>31</height>
      </rect>
@@ -136,7 +136,7 @@
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>140</y>
+      <y>160</y>
       <width>371</width>
       <height>20</height>
      </rect>
@@ -183,7 +183,7 @@
     <property name="geometry">
      <rect>
       <x>120</x>
-      <y>190</y>
+      <y>210</y>
       <width>111</width>
       <height>31</height>
      </rect>
@@ -207,7 +207,7 @@
     <property name="geometry">
      <rect>
       <x>240</x>
-      <y>190</y>
+      <y>210</y>
       <width>131</width>
       <height>31</height>
      </rect>
@@ -252,7 +252,7 @@
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>230</y>
+      <y>250</y>
       <width>151</width>
       <height>23</height>
      </rect>
@@ -271,7 +271,7 @@
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>260</y>
+      <y>280</y>
       <width>151</width>
       <height>23</height>
      </rect>
@@ -290,7 +290,7 @@
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>290</y>
+      <y>310</y>
       <width>151</width>
       <height>23</height>
      </rect>
@@ -309,7 +309,7 @@
     <property name="geometry">
      <rect>
       <x>210</x>
-      <y>230</y>
+      <y>250</y>
       <width>151</width>
       <height>23</height>
      </rect>
@@ -328,7 +328,7 @@
     <property name="geometry">
      <rect>
       <x>210</x>
-      <y>260</y>
+      <y>280</y>
       <width>151</width>
       <height>23</height>
      </rect>
@@ -347,7 +347,7 @@
     <property name="geometry">
      <rect>
       <x>210</x>
-      <y>290</y>
+      <y>310</y>
       <width>151</width>
       <height>23</height>
      </rect>
@@ -359,23 +359,58 @@
      <bool>false</bool>
     </property>
    </widget>
-   <widget class="QCheckBox" name="chk_random_mask_2">
+   <widget class="QCheckBox" name="chk_publish_joints">
     <property name="enabled">
      <bool>true</bool>
     </property>
     <property name="geometry">
      <rect>
-      <x>10</x>
-      <y>160</y>
+      <x>11</x>
+      <y>180</y>
       <width>241</width>
       <height>23</height>
      </rect>
     </property>
     <property name="text">
-     <string>Publish Insertion/ cabels data</string>
+     <string>Publish Insertion / cabels data</string>
     </property>
     <property name="checked">
      <bool>false</bool>
+    </property>
+   </widget>
+   <widget class="QSlider" name="tbr_replay_repeat">
+    <property name="geometry">
+     <rect>
+      <x>170</x>
+      <y>140</y>
+      <width>161</width>
+      <height>16</height>
+     </rect>
+    </property>
+    <property name="minimum">
+     <number>1</number>
+    </property>
+    <property name="maximum">
+     <number>50</number>
+    </property>
+    <property name="value">
+     <number>10</number>
+    </property>
+    <property name="orientation">
+     <enum>Qt::Horizontal</enum>
+    </property>
+   </widget>
+   <widget class="QLabel" name="lbl_replay_repeat">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>130</y>
+      <width>151</width>
+      <height>31</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Repeat: 1 time</string>
     </property>
    </widget>
   </widget>
@@ -383,9 +418,9 @@
    <property name="geometry">
     <rect>
      <x>10</x>
-     <y>333</y>
+     <y>360</y>
      <width>391</width>
-     <height>211</height>
+     <height>221</height>
     </rect>
    </property>
    <property name="frameShape">
@@ -565,7 +600,7 @@
    <property name="geometry">
     <rect>
      <x>10</x>
-     <y>550</y>
+     <y>590</y>
      <width>391</width>
      <height>301</height>
     </rect>
