@@ -149,7 +149,14 @@ class MyPlugin(Plugin):
         # Initialize the timer
         self.replay_timer = QTimer(self)
         self.frm_grabber_timer = QTimer(self)
-        
+    
+
+    def loginfo(self, msg: str, ID = 0):
+        if ID == 0:
+            rospy.loginfo(f"[Recorder - {ID}] {msg}")
+        elif ID == 1:
+            rospy.logerr(f"[Recorder - {ID}] {msg}")
+
     def handle_btn_open_path_click(self):
         # open a dialog to select a folder
         from PyQt5.QtWidgets import QFileDialog
@@ -162,15 +169,15 @@ class MyPlugin(Plugin):
         devices = []
         try:
             output = subprocess.check_output("ls /dev/video* ", shell=True).decode("utf-8")
-            rospy.loginfo (f"output : {output}")
+            self.loginfo(f"output : {output}")
             lines = output.splitlines()
             for line in lines:
                 if line and "/dev/video" in line:
                     devices.append(line)
                 
         except Exception as e:
-            rospy.logerr(f"Error: {e}")
-        
+            self.loginfo(f"Error: {e}", 1)
+
         return devices
 
     def handle_btn_record_click(self):
@@ -181,7 +188,7 @@ class MyPlugin(Plugin):
                 if self.save_path == "":
                     self._widget.btn_record.setText("Record")
                     self._widget.btn_record.setStyleSheet("color: green;")
-                    rospy.logerr(f"saving path is not correct.")
+                    self.loginfo(f"saving path is not correct.", 1)
                     return
                 
                 if chk_new_folder:    
@@ -190,8 +197,8 @@ class MyPlugin(Plugin):
                     # Create the directory
                     os.makedirs(self.save_path)
                     self._widget.txt_path_record.setPlainText(self.save_path)
-                    rospy.loginfo(f"New folder created: {self.save_path}")
-                
+                    self.loginfo(f"New folder created: {self.save_path}")
+
                 # Open text files for other data
                 self.cables_pos_file = open(os.path.join(self.save_path, "cables_pos.txt"), "a")
                 self.tool_translation_file = open(os.path.join(self.save_path, "tool_translation.txt"), "a")
@@ -229,7 +236,7 @@ class MyPlugin(Plugin):
                 self._widget.lbl_record.setStyleSheet(style_sheet)
                 
         except Exception as e:
-            rospy.logerr(f"Failed to record the images: {e}")
+            self.loginfo(f"Failed to record the images: {e}", 1)
             return
         
     
@@ -263,37 +270,37 @@ class MyPlugin(Plugin):
                                 value = int(parts[1].strip())
                                 self._widget.tbr_frm_grab_rot.setValue(value)
                                 self._inital_rotation = value
-                                rospy.loginfo(f"rotation: {self._inital_rotation}")
+                                self.loginfo(f"rotation: {self._inital_rotation}")
                             elif key == "speed":
                                 value = int(parts[1].strip())
                                 self._widget.tbr_frm_grab_spd.setValue(value)
-                                rospy.loginfo(f"speed: {value}")
+                                self.loginfo(f"speed: {value}")
                             elif key == "show_img":
                                 value = parts[1].strip()
                                 if value == "True":
                                     self._widget.chk_show_img.setChecked(True)
                                 else:
                                     self._widget.chk_show_img.setChecked(False)
-                                rospy.loginfo(f"show_img: {value}")        
+                                self.loginfo(f"show_img: {value}")
                             elif key == "thr_ratio":
                                 value = int(parts[1].strip())
                                 self._widget.tbr_thr_ratio.setValue(value)
                                 self._thr_ratio = value
                                 self._widget.lbl_thr_ratio.setText(f"Ratio:\t{self._thr_ratio}")
-                                rospy.loginfo(f"thr_ratio: {self._thr_ratio}")
+                                self.loginfo(f"thr_ratio: {self._thr_ratio}")
                         elif key == "crop":
                             value = f"{parts[1].strip()},{parts[2].strip()},{parts[3].strip()},{parts[4].strip()}"
                             self._widget.txt_frm_grab_crop.setPlainText(value)
                             self._inital_crop = [int(x) for x in value.split(",")]
-                            rospy.loginfo(f"crop: {self._inital_crop}")
+                            self.loginfo(f"crop: {self._inital_crop}")
                         
 
-                rospy.loginfo("Frame grabber configuration loaded.")
-                
+                self.loginfo("Frame grabber configuration loaded.")
+
             else:
-                rospy.logerr(f"Frame grabber configuration file does not exist.")
+                self.loginfo(f"Frame grabber configuration file does not exist.", 1)
         except Exception as e:
-            rospy.logerr(f"Failed to load the frame grabber configuration: {e}")
+            self.loginfo(f"Failed to load the frame grabber configuration: {e}", 1)
             return
         
 
@@ -311,10 +318,10 @@ class MyPlugin(Plugin):
                     # Convert each item to string and write to the file
                     file.write(f"{item[0]}, {item[1]}\n")
 
-            rospy.loginfo("Configuration saved to: {}".format(self.frm_cfg_save_path))
-            
+            self.loginfo("Configuration saved to: {}".format(self.frm_cfg_save_path))
+
         except Exception as e:
-            rospy.logerr(f"Failed to save the configuration: {e}")
+            self.loginfo(f"Failed to save the configuration: {e}", 1)
             return
     
     
@@ -324,7 +331,7 @@ class MyPlugin(Plugin):
             self.generate_video()
             self._widget.btn_gen_video.setStyleSheet("color: green;")
         except Exception as e:
-            rospy.logerr(f"Failed to generate the video: {e}")
+            self.loginfo(f"Failed to generate the video: {e}", 1)
             return
     
     def generate_video(self):
@@ -335,14 +342,14 @@ class MyPlugin(Plugin):
             
             images = sorted(glob.glob(os.path.join(self._replay_folder_path, "*.jpg")))
             if not images:
-                rospy.logerr("No PNG images found in the folder.")
+                self.loginfo("No PNG images found in the folder.", 1)
                 return
             
             # Read the first image to get frame size
             frame = cv2.imread(images[0])
             height, width, layers = frame.shape
             len_images = len(images)
-            rospy.loginfo(f"Generating video from the images...")
+            self.loginfo(f"Generating video from the images...")
             fps = self._widget.tbr_frm_grab_spd.value()
             self._widget.lbl_replay.setText(f"Gen ... 0/{len_images}")
             self._widget.btn_gen_video.setStyleSheet("color: red;")
@@ -353,20 +360,20 @@ class MyPlugin(Plugin):
             out = cv2.VideoWriter(video_path, fourcc, fps, (width, height))
             for i, file in enumerate(images):
                 if i % 1000 == 0:
-                    rospy.loginfo(f"Generating video from the images... {i+1}/{len_images}")
+                    self.loginfo(f"Generating video from the images... {i+1}/{len_images}")
                     self._widget.lbl_replay.setText(f"Gen: {i+1}/{len_images}")
                     QApplication.processEvents()
 
-                # rospy.loginfo(f"Generating video from the images... {i+1}/{len(images)}")
+                # self.loginfo(f"Generating video from the images... {i+1}/{len(images)}")
                 img = PILImage.open(file)
                 cv_image = np.array(img)
                 out.write(cv_image)
             out.release()
             self._widget.lbl_replay.setText("---")
             self._widget.lbl_replay.setStyleSheet("color: black;")
-            rospy.loginfo(f"Video generated successfully.")
+            self.loginfo(f"Video generated successfully.")
         except Exception as e:
-            rospy.logerr(f"Failed to generate the video: {e}")
+            self.loginfo(f"Failed to generate the video: {e}", 1)
             return
     
     def handle_btn_frm_grabber_click(self):
@@ -387,7 +394,7 @@ class MyPlugin(Plugin):
                 crop_str = self._widget.txt_frm_grab_crop.toPlainText()
                 self._inital_crop = [int(x) for x in crop_str.split(",")]
                 if len(self._inital_crop) != 4:
-                    rospy.logerr(f"Invalid crop values.")
+                    self.loginfo(f"Invalid crop values.", 1)
                     self._cropping = False
                 else:
                     self._cropping = True
@@ -412,15 +419,15 @@ class MyPlugin(Plugin):
 
                 # Check if the capture is successful
                 if not self._cap.isOpened():
-                    rospy.logerr("Error: Could not open video device")
+                    self.loginfo("Error: Could not open video device", 1)
                     return
 
                 # Capture a single frame
                 ret, frame = self._cap.read()
                 
                 if ret:
-                    rospy.loginfo(f"Image captured {frame.shape}")
-                    img = PILImage.fromarray(frame) 
+                    self.loginfo(f"Image captured {frame.shape}")
+                    img = PILImage.fromarray(frame)
                     if self._cropping:
                         img = transforms.functional.rotate(img,self._inital_rotation).crop(self._inital_crop)
                     else:
@@ -429,7 +436,7 @@ class MyPlugin(Plugin):
                     cv_image = np.array(img)
                     self._widget.lbl_frm_grab_img_size.setText(f"Size:\t{frame.shape[1]}x{frame.shape[0]} -> {cv_image.shape[1]}x{cv_image.shape[0]}")
                 else:
-                    rospy.logerr("Error: Failed to capture image")
+                    self.loginfo("Error: Failed to capture image", 1)
                     return
 
 
@@ -447,7 +454,7 @@ class MyPlugin(Plugin):
                 self._widget.btn_frm_grabber.setStyleSheet("color: red;")
                 self.frm_grabber_timer.start()
             except Exception as e:
-                rospy.logerr(f"Failed to start the frame grabber: {e}")
+                self.loginfo(f"Failed to start the frame grabber: {e}", 1)
                 self._widget.btn_frm_grabber.setText("Start")
                 self._widget.btn_frm_grabber.setStyleSheet("color: green;")
                 return
@@ -489,9 +496,9 @@ class MyPlugin(Plugin):
         try:
             ret, frame = self._cap.read()
             if not ret:
-                rospy.logerr("Failed to grab the frame...")
+                self.loginfo("Failed to grab the frame...", 1)
                 return
-            # print (f"{self.cnt}frame shape: {frame.shape}")
+            # self.loginfo (f"{self.cnt}frame shape: {frame.shape}")
             # self.cnt +=1
             if self._thr_ratio > 0:
                 frame = self.smart_trim_black_borders(frame,min_content_thresh_ratio=self._thr_ratio)
@@ -510,7 +517,7 @@ class MyPlugin(Plugin):
             self.replay_image_pub.publish(image_msg)
             
         except Exception as e:
-            rospy.logerr(f"Failed to grab the frame: {e}")
+            self.loginfo(f"Failed to grab the frame: {e}", 1)
             self.frm_grabber_timer.stop()
             self._widget.btn_frm_grabber.setText("Start")
             self._widget.btn_frm_grabber.setStyleSheet("color: green;")
@@ -545,7 +552,7 @@ class MyPlugin(Plugin):
         """
         
         if self._replay_folder_path == "":
-            rospy.logerr(f"replay path is not defined.")
+            self.loginfo(f"replay path is not defined.", 1)
             # Stop the timer
             self.replay_timer.stop()
             self._widget.btn_replay.setText("Replay")
@@ -555,21 +562,7 @@ class MyPlugin(Plugin):
             if self._pause:
                 return
             
-            if self._widget.chk_publish_joints.isChecked():
-                # publish cables and tool states
-                cables_msg = Float64MultiArray()
-                tool_msg = Float64MultiArray()
-                if not hasattr(self, '_cables_data') or not hasattr(self, '_tool_translation_data'):
-                    rospy.logerr(f"Joints data not loaded.")
-                else:
-                    if self._replay_frame_count >= self._cables_data.shape[0]:
-                        rospy.loginfo(f"end of tool data.")
-                    else:
-                        cables_msg.data = self._cables_data[self._replay_frame_count][1:].tolist()
-                        tool_msg.data = self._tool_translation_data[self._replay_frame_count][1:].tolist()
-                        self.cables_pos_pub.publish(cables_msg)
-                        self.tool_translation_pub.publish(tool_msg)
-
+            
             image_path = os.path.join(self._replay_folder_path, f"image_{self._replay_frame_count:04d}.jpg")
             img = PILImage.open(image_path)
             cv_image = np.array(img)
@@ -664,6 +657,24 @@ class MyPlugin(Plugin):
             image_msg = self.bridge.cv2_to_imgmsg(cv_image, encoding="bgr8")
             self.replay_image_pub.publish(image_msg)
             
+            if self._widget.chk_publish_joints.isChecked():
+                # publish cables and tool states
+                cables_msg = Float64MultiArray()
+                tool_msg = Float64MultiArray()
+                if not hasattr(self, '_cables_data') or not hasattr(self, '_tool_translation_data'):
+                    self.loginfo(f"Joints data not loaded.", 1)
+                    self.loginfo(f"Loading joints data from the replay folder...")
+                    self.load_cables_pos_data_ready_for_publish()
+
+                else:
+                    if self._replay_frame_count >= self._cables_data.shape[0]:
+                        self.loginfo(f"end of tool data.")
+                    else:
+                        cables_msg.data = self._cables_data[self._replay_frame_count][1:].tolist()
+                        tool_msg.data = self._tool_translation_data[self._replay_frame_count][1:].tolist()
+                        self.cables_pos_pub.publish(cables_msg)
+                        self.tool_translation_pub.publish(tool_msg)
+
             if self._internal_cnt % self._replay_repeat_count == 0:
                 self._replay_frame_count += 1
                 
@@ -673,7 +684,7 @@ class MyPlugin(Plugin):
             
             
         except Exception as e:
-            rospy.logerr(f"Failed to check the replay path: {e}")
+            self.loginfo(f"Failed to check the replay path: {e}", 1)
             # Stop the timer
             self.replay_timer.stop()
             self._widget.lbl_replay.setText("---")
@@ -752,7 +763,7 @@ class MyPlugin(Plugin):
                 if self._replay_folder_path == "":
                     self._widget.btn_replay.setText("Replay")
                     self._widget.btn_replay.setStyleSheet("color: green;")
-                    rospy.logerr(f"Please load landmarks first.")
+                    self.loginfo(f"Please load landmarks first.", 1)
                     return
                 
                 self._widget.btn_replay.setText("Stop")
@@ -774,12 +785,13 @@ class MyPlugin(Plugin):
                 self._replay_frame_count = 0
 
                 if self._widget.chk_publish_joints.isChecked():
-                    self.cables_pos_pub = rospy.Publisher("/cables_pos", Float64MultiArray, queue_size=10)
-                    self.tool_translation_pub = rospy.Publisher("/tool_translation", Float64MultiArray, queue_size=10)
-                    self._cables_data = np.loadtxt(os.path.join(self._replay_folder_path, "cables_pos.txt"), delimiter=',')
-                    self._tool_translation_data = np.loadtxt(os.path.join(self._replay_folder_path, "tool_translation.txt"),  delimiter=',')
-                    print (f"cables_data shape: {self._cables_data.shape}")
-                    print (f"tool_translation_data shape: {self._tool_translation_data.shape}")
+                    self.load_cables_pos_data_ready_for_publish()
+                    # self.cables_pos_pub = rospy.Publisher("/cables_pos", Float64MultiArray, queue_size=10)
+                    # self.tool_translation_pub = rospy.Publisher("/tool_translation", Float64MultiArray, queue_size=10)
+                    # self._cables_data = np.loadtxt(os.path.join(self._replay_folder_path, "cables_pos.txt"), delimiter=',')
+                    # self._tool_translation_data = np.loadtxt(os.path.join(self._replay_folder_path, "tool_translation.txt"),  delimiter=',')
+                    # self.loginfo (f"cables_data shape: {self._cables_data.shape}")
+                    # self.loginfo (f"tool_translation_data shape: {self._tool_translation_data.shape}")
 
                 # Start the timer
                 self.replay_timer.start()
@@ -802,7 +814,7 @@ class MyPlugin(Plugin):
                 
                 
         except Exception as e:
-            rospy.logerr(f"Failed to replay the images: {e}")
+            self.loginfo(f"Failed to replay the images: {e}", 1)
             self.replay_timer.stop()
             self._widget.btn_replay.setText("Replay")
             self._widget.btn_replay.setStyleSheet("color: green;")
@@ -812,7 +824,18 @@ class MyPlugin(Plugin):
             self._widget.lbl_replay.setStyleSheet(style_sheet)
             return
         
-         
+    def load_cables_pos_data_ready_for_publish(self):
+        try:
+            self.cables_pos_pub = rospy.Publisher("/cables_pos", Float64MultiArray, queue_size=10)
+            self.tool_translation_pub = rospy.Publisher("/tool_translation", Float64MultiArray, queue_size=10)
+            self._cables_data = np.loadtxt(os.path.join(self._replay_folder_path, "cables_pos.txt"), delimiter=',')
+            self._tool_translation_data = np.loadtxt(os.path.join(self._replay_folder_path, "tool_translation.txt"),  delimiter=',')
+            self.loginfo (f"cables_data shape: {self._cables_data.shape}")
+            self.loginfo (f"tool_translation_data shape: {self._tool_translation_data.shape}")
+        except Exception as e:
+            self.loginfo (f"Failed to load the cables position data: {e}", 1)
+            return
+
     def image_callback(self, msg):
         
         self.frame_count += 1
@@ -825,7 +848,7 @@ class MyPlugin(Plugin):
         # add a try except block to handle the error
         try:
             if self.data_str == "" or self._tool_trans_data_str == "":
-                rospy.logerr(f"cables position data is not ready yet.")
+                self.loginfo(f"cables position data is not ready yet.")
                 # return
                 self.data_str = "0.0,0.0,0.0,0.0"
                 self._tool_trans_data_str = "0.0, 0.0"
@@ -845,7 +868,7 @@ class MyPlugin(Plugin):
             self.tool_translation_file.flush()  # Ensure data is written immediately
 
         except Exception as e:
-            rospy.logerr(f"Failed to save the image: {e}")
+            self.loginfo (f"Failed to save the image: {e}", 1)
             return
         
 
