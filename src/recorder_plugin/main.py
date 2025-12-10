@@ -288,11 +288,33 @@ class MyPlugin(Plugin):
                                 self._thr_ratio = value
                                 self._widget.lbl_thr_ratio.setText(f"Ratio:\t{self._thr_ratio}")
                                 self.loginfo(f"thr_ratio: {self._thr_ratio}")
+                            elif key == "replay_path":
+                                value = parts[1].strip()
+                                self._widget.txt_path_replay.setPlainText(value)
+                                self.loginfo(f"replay_path: {value}")
+                            elif key == "publish_cable":
+                                value = parts[1].strip()
+                                if value == "True":
+                                    self._widget.chk_publish_joints.setChecked(True)
+                                else:
+                                    self._widget.chk_publish_joints.setChecked(False)
+                                self.loginfo(f"publish_cable: {value}")
+                            elif key == "replay_speed":
+                                value = int(parts[1].strip())
+                                self._widget.tbr_replay_spd.setValue(value)
+                                self.loginfo(f"replay_speed: {value} hz")
+                            elif key == "replay_repeat":
+                                value = int(parts[1].strip())
+                                self._widget.tbr_replay_repeat.setValue(value)
+                                self._replay_repeat_count = value
+                                self.loginfo(f"replay_repeat: {value}")
+                                self._widget.lbl_replay_repeat.setText(f"Repeat:\t{self._replay_repeat_count} times")
                         elif key == "crop":
                             value = f"{parts[1].strip()},{parts[2].strip()},{parts[3].strip()},{parts[4].strip()}"
                             self._widget.txt_frm_grab_crop.setPlainText(value)
                             self._inital_crop = [int(x) for x in value.split(",")]
                             self.loginfo(f"crop: {self._inital_crop}")
+                        
                         
 
                 self.loginfo("Frame grabber configuration loaded.")
@@ -312,7 +334,11 @@ class MyPlugin(Plugin):
             data.append(["speed",self._widget.tbr_frm_grab_spd.value()])
             data.append(["show_img",self._widget.chk_show_img.isChecked()])
             data.append(["thr_ratio",self._widget.tbr_thr_ratio.value()])
-            
+            data.append(["replay_path",self._widget.txt_path_replay.toPlainText()])
+            data.append(["publish_cable", self._widget.chk_publish_joints.isChecked()])
+            data.append(["replay_speed", self._widget.tbr_replay_spd.value()])
+            data.append(["replay_repeat", self._widget.tbr_replay_repeat.value()])
+
             with open(self.frm_cfg_save_path, 'w') as file:
                 for item in data:
                     # Convert each item to string and write to the file
