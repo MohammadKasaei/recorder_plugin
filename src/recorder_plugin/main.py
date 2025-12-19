@@ -824,7 +824,7 @@ class MyPlugin(Plugin):
                 self._widget.lbl_replay.setText("Replaying")
                 style_sheet = f"color: red;"
                 self._widget.lbl_replay.setStyleSheet(style_sheet)
-
+                self.handle_btn_save_cfg_click()
                 
             else:
                 # Stop the timer
