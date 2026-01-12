@@ -54,6 +54,20 @@ def pin_process_to_cores(cores):
         rospy.logwarn(f"Failed to set CPU affinity: {e}")
 
 
+def set_nice(delta):
+    """
+    Increase nice => lower priority.
+    Decrease nice => higher priority (usually requires sudo/root).
+    """
+    try:
+        new_nice = os.nice(delta)
+        rospy.loginfo(f"Set nice delta {delta}, now nice={new_nice}")
+    except PermissionError as e:
+        rospy.logwarn(f"No permission to change nice (try sudo): {e}")
+    except Exception as e:
+        rospy.logwarn(f"Failed to change nice: {e}")
+        
+        
 class MyPlugin(Plugin):
 
     # Define a signal for thread-safe GUI updates
@@ -84,7 +98,7 @@ class MyPlugin(Plugin):
         # Create QWidget
         self._widget = QWidget()
         # pin_process_to_cores([i for i in range(1, os.cpu_count(), 2)])  # odd cores only
-
+        # set_nice(-5)
         # Get path to UI file
         ui_file = os.path.join(
             rospkg.RosPack().get_path('recorder_plugin'),
@@ -232,8 +246,8 @@ class MyPlugin(Plugin):
         
         
                 # Bounded queue: if writer can’t keep up, we drop frames instead of lagging
-                self.q = queue.Queue(maxsize=1000)
-    
+                self.q = queue.Queue(maxsize=0) # maxsize=0 means infinite size
+
                 # Writer thread control
                 self._stop_evt = threading.Event()
                 self._writer_thread = threading.Thread(target=self._writer_loop, daemon=True)
@@ -311,12 +325,34 @@ class MyPlugin(Plugin):
             except Exception as e:
                 rospy.logerr(f"Writer failed: {e}")
 
-        # final flush on exit
+        # Phase 2: drain remaining items
+        while True:
+            try:
+                item = self.q.get_nowait()
+            except queue.Empty:
+                break
+
+            fname, cv_image, ts, cables, tool = item
+            try:
+                cv2.imwrite(fname, cv_image)
+                self.cables_pos_file.write(f"{ts},{cables}\n")
+                self.tool_translation_file.write(f"{ts},{tool}\n")
+            except Exception as e:
+                rospy.logerr(f"Drain write failed: {e}")
+
+        # Final flush
         try:
             self.cables_pos_file.flush()
             self.tool_translation_file.flush()
         except Exception:
             pass
+        
+        # # final flush on exit
+        # try:
+        #     self.cables_pos_file.flush()
+        #     self.tool_translation_file.flush()
+        # except Exception:
+        #     pass
         
     def cables_pos_callback(self, msg):
         if not self._can_save:
