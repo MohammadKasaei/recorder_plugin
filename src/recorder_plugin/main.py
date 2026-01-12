@@ -1,7 +1,9 @@
 # src/my_rqt_plugin/my_module.py
 
 import os
+import queue
 from random import random
+import threading
 import rospy
 import rospkg
 from python_qt_binding import loadUi
@@ -35,6 +37,23 @@ import fnmatch
 import glob
 
 
+def pin_process_to_cores(cores):
+    """
+    Pin *this process* (the whole rqt instance) to selected CPU cores.
+    Linux only.
+    """
+    try:
+        pid = 0  # 0 means "current process"
+        os.sched_setaffinity(pid, set(cores))
+        rospy.loginfo(f"Pinned process to cores: {cores}")
+    except AttributeError:
+        rospy.logwarn("os.sched_setaffinity not available (not Linux?).")
+    except PermissionError as e:
+        rospy.logwarn(f"No permission to set CPU affinity: {e}")
+    except Exception as e:
+        rospy.logwarn(f"Failed to set CPU affinity: {e}")
+
+
 class MyPlugin(Plugin):
 
     # Define a signal for thread-safe GUI updates
@@ -64,6 +83,7 @@ class MyPlugin(Plugin):
 
         # Create QWidget
         self._widget = QWidget()
+        # pin_process_to_cores([i for i in range(1, os.cpu_count(), 2)])  # odd cores only
 
         # Get path to UI file
         ui_file = os.path.join(
@@ -202,13 +222,26 @@ class MyPlugin(Plugin):
                 # Open text files for other data
                 self.cables_pos_file = open(os.path.join(self.save_path, "cables_pos.txt"), "a")
                 self.tool_translation_file = open(os.path.join(self.save_path, "tool_translation.txt"), "a")
-                self.image_sub = rospy.Subscriber("/read_camera_image/image_bronch", Image, self.image_callback)
-                
-                self.cables_pos_sub = rospy.Subscriber("/cables_pos", Float64MultiArray, self.cables_pos_callback)
-                self.tool_translation_sub = rospy.Subscriber("/tool_translation", Float64MultiArray, self.tool_translation_callback)
+                self.image_sub = rospy.Subscriber("/read_camera_image/image_bronch", Image, self.image_callback, buff_size=2**24, queue_size=1)
+
+                self.cables_pos_sub = rospy.Subscriber("/cables_pos", Float64MultiArray, self.cables_pos_callback, queue_size=1)
+                self.tool_translation_sub = rospy.Subscriber("/tool_translation", Float64MultiArray, self.tool_translation_callback, queue_size=1)
                 self.frame_count = 0
                 self._frame_saved_count = 0
         
+        
+        
+                # Bounded queue: if writer can’t keep up, we drop frames instead of lagging
+                self.q = queue.Queue(maxsize=1000)
+    
+                # Writer thread control
+                self._stop_evt = threading.Event()
+                self._writer_thread = threading.Thread(target=self._writer_loop, daemon=True)
+                        
+                # Start writer thread
+                self._writer_thread.start()
+
+
                 self._widget.btn_record.setText("Stop")
                 self._widget.btn_record.setStyleSheet("color: red;")
                 self._widget.lbl_record.setText("Recording...")
@@ -220,6 +253,17 @@ class MyPlugin(Plugin):
                 self._can_save = True                
                 
             else:
+                
+                # Wait until queue is empty
+                # self.q.join(timeout=2.0)   # requires task_done() in writer
+                # stop thread
+                self._stop_evt.set()
+                try:
+                    self.q.put_nowait(None)  # sentinel
+                except queue.Full:
+                    pass
+                self._writer_thread.join(timeout=2.0)
+
                 self.image_sub.unregister()
                 self.cables_pos_sub.unregister()
                 self.tool_translation_sub.unregister()
@@ -240,6 +284,40 @@ class MyPlugin(Plugin):
             return
         
     
+    def _writer_loop(self):
+        flush_every = 30
+        written = 0
+
+        while not self._stop_evt.is_set():
+            item = self.q.get()
+            if item is None:
+                break
+
+            fname, cv_image, ts, cables, tool = item
+
+            try:
+                # JPEG quality tweak (optional): lower quality => faster + smaller files
+                # cv2.imwrite(fname, cv_image, [int(cv2.IMWRITE_JPEG_QUALITY), 90])
+                cv2.imwrite(fname, cv_image)
+
+                self.cables_pos_file.write(f"{ts},{cables}\n")
+                self.tool_translation_file.write(f"{ts},{tool}\n")
+
+                written += 1
+                if written % flush_every == 0:
+                    self.cables_pos_file.flush()
+                    self.tool_translation_file.flush()
+
+            except Exception as e:
+                rospy.logerr(f"Writer failed: {e}")
+
+        # final flush on exit
+        try:
+            self.cables_pos_file.flush()
+            self.tool_translation_file.flush()
+        except Exception:
+            pass
+        
     def cables_pos_callback(self, msg):
         if not self._can_save:
             return
@@ -796,8 +874,6 @@ class MyPlugin(Plugin):
                 self._widget.btn_replay.setStyleSheet("color: red;")
                 self._widget.btn_pause.setEnabled(True)
                 
-            
-            
                 replay_speed = self._widget.tbr_replay_spd.value()
 
                 self.replay_timer.setInterval(1000/replay_speed)  # Set interval to 5000 ms (5 seconds)
@@ -864,9 +940,9 @@ class MyPlugin(Plugin):
 
     def image_callback(self, msg):
         
-        self.frame_count += 1
-        if self.frame_count % (self._frame_per_second) != 0:
-            return
+        # self.frame_count += 1
+        # if self.frame_count % (self._frame_per_second) != 0:
+        #     return
         
         if self._rec_pause:
             return 
@@ -883,15 +959,41 @@ class MyPlugin(Plugin):
             cv_image = self.bridge.imgmsg_to_cv2(msg, "bgr8")
             fname = f"{self.save_path}/image_{self._frame_saved_count:04d}.jpg"
             self._frame_saved_count += 1
-            cv2.imwrite(fname, cv2.cvtColor(cv_image, cv2.COLOR_RGB2BGR))  # Convert back to BGR for OpenCV
+            
+                
+            # Snapshot aux data + timestamp (avoid reading changing vars in writer)
+            ts = time.time()
+            cables = self.data_str
+            tool = self._tool_trans_data_str
 
-            timestamp = time.time()
-            self.cables_pos_file.write(f"{timestamp},{self.data_str}\n")
-            self.cables_pos_file.flush()  #
+            item = (fname, cv_image, ts, cables, tool)
+
+            # Non-blocking enqueue; drop frames if queue is full (keeps system realtime)
+            try:
+                self.q.put_nowait(item)
+            except queue.Full:
+                # Drop oldest then insert newest (prefer latest frame)
+                try:
+                    _ = self.q.get_nowait()
+                    self.q.put_nowait(item)
+                except Exception:
+                    pass
+                
+            # cv2.imwrite(fname, cv2.cvtColor(cv_image, cv2.COLOR_RGB2BGR))  # Convert back to BGR for OpenCV
+            # cv2.imwrite(fname, cv_image)   # since cv_image is already BGR
+
+            # timestamp = time.time()
+            # self.cables_pos_file.write(f"{timestamp},{self.data_str}\n")
+            # self.cables_pos_file.flush()  #
         
-            timestamp = time.time()
-            self.tool_translation_file.write(f"{timestamp},{self._tool_trans_data_str}\n")
-            self.tool_translation_file.flush()  # Ensure data is written immediately
+            # timestamp = time.time()
+            # self.tool_translation_file.write(f"{timestamp},{self._tool_trans_data_str}\n")
+            # self.tool_translation_file.flush()  # Ensure data is written immediately
+            
+            # if self._frame_saved_count % 30 == 0:
+            #     self.cables_pos_file.flush()
+            #     self.tool_translation_file.flush()
+
 
         except Exception as e:
             self.loginfo (f"Failed to save the image: {e}", 1)
